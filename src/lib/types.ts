@@ -2,12 +2,14 @@ export type Job = {
     id: string;
     slug: string;
     title: string;
+    description?: string | null;
     department: string | null;
     status: 'active' | 'inactive' | 'draft';
     salary_min: number | null;
     salary_max: number | null;
     currency: string | null;
     salary_display: string | null;
+    created_at?: string;
 };
 
 export type ApplicationField = {
