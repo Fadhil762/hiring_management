@@ -1,6 +1,6 @@
 # Hiring Management Web App
 
-A modern, full-stack hiring management system built for Rakamin's Frontend Engineer case study. This application enables recruiters to manage job vacancies and applicants to submit applications with an innovative gesture-based photo capture feature.
+A modern, full-stack hiring management system. This application enables recruiters to manage job vacancies and applicants to submit applications with an innovative gesture-based photo capture feature.
 
 ## 🎯 Features
 
@@ -246,18 +246,12 @@ The application uses **MediaPipe Hands** for real-time hand gesture detection:
 - Environment variables should never be committed
 - Use secure authentication for admin routes in production
 
-## 📝 License
-
-This project was created as a case study for Rakamin's Frontend Engineer position.
 
 ## 🙏 Acknowledgments
 
-- Design provided by Rakamin
 - Built with Next.js and React
 - Gesture detection powered by MediaPipe
 - Backend by Supabase
 
----
 
-**Built with ❤️ for Rakamin**
 \`\`\`
