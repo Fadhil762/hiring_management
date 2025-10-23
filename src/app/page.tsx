@@ -19,7 +19,6 @@ export default function Home(){
             <h1 className="text-5xl font-bold mb-4">Find Your Dream Job</h1>
             <p className="text-xl text-teal-100 mb-8">Join our team and build your career with us</p>
             <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
-              <span className="text-2xl">🎯</span>
               <span className="font-semibold">{activeJobs.length} Open Positions Available</span>
             </div>
           </div>

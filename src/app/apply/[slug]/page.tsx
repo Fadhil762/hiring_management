@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useForm } from 'react-hook-form';
 import Webcam from 'react-webcam';
@@ -8,8 +8,11 @@ import Image from 'next/image';
 import { zodSchemaFromFields, visibleFields } from '@/lib/form';
 import { useGestureDetection } from '@/hooks/useGestureDetection';
 import type { Job, JobConfig, ApplicationField } from '@/lib/types';
+import { use } from 'react';
 
-export default function ApplyPage({ params }: { params: { slug: string } }) {
+export default function ApplyPage({ params }: { params: Promise<{ slug: string }> | { slug: string } }) {
+  // Handle both Promise and direct params for Next.js compatibility
+  const resolvedParams = params instanceof Promise ? use(params) : params;
   const [job, setJob] = useState<Job | null>(null);
   const [fields, setFields] = useState<ApplicationField[]>([]);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -17,7 +20,7 @@ export default function ApplyPage({ params }: { params: { slug: string } }) {
 
   useEffect(() => {
     (async () => {
-      const { data: job } = await supabase.from('jobs').select('*').eq('slug', params.slug).single();
+      const { data: job } = await supabase.from('jobs').select('*').eq('slug', resolvedParams.slug).single();
       setJob(job);
       if (!job) return;
       const { data: cfg } = await supabase.from('job_configs').select('config').eq('job_id', job.id).single();
@@ -25,7 +28,7 @@ export default function ApplyPage({ params }: { params: { slug: string } }) {
       const allFields = config.application_form.sections[0].fields;
       setFields(visibleFields(allFields));
     })();
-  }, [params.slug]);
+  }, [resolvedParams.slug]);
 
   const schema = useMemo(() => zodSchemaFromFields(fields), [fields]);
 
@@ -37,20 +40,40 @@ export default function ApplyPage({ params }: { params: { slug: string } }) {
   const webcamRef = useRef<Webcam | null>(null);
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
 
-  const capture = () => {
+  const capture = useCallback(() => {
     const current = webcamRef.current;
-    if (!current) return;
+    if (!current) {
+      console.log('Webcam ref not available');
+      return;
+    }
     const shot = current.getScreenshot();
-    if (shot) setPhoto(shot);
-  };
+    if (shot) {
+      console.log('Photo captured successfully!');
+      setPhoto(shot);
+    } else {
+      console.log('Failed to capture screenshot');
+    }
+  }, []);
 
   const { fingerCount, isProcessing } = useGestureDetection(videoElement, autoCapture, capture);
 
+  // Set video element when webcam is ready
   useEffect(() => {
-    if (webcamRef.current?.video) {
-      setVideoElement(webcamRef.current.video);
-    }
-  }, [webcamRef.current?.video]);
+    const checkVideo = () => {
+      if (webcamRef.current?.video && webcamRef.current.video.readyState === 4) {
+        console.log('Video element ready, initializing gesture detection');
+        setVideoElement(webcamRef.current.video);
+      }
+    };
+
+    // Check immediately
+    checkVideo();
+
+    // Also check periodically in case video loads after component mount
+    const interval = setInterval(checkVideo, 500);
+
+    return () => clearInterval(interval);
+  }, [autoCapture]); // Re-run when autoCapture changes
 
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -153,10 +176,21 @@ export default function ApplyPage({ params }: { params: { slug: string } }) {
               <div className="space-y-5">
                 <div className="relative rounded-xl overflow-hidden shadow-lg border-2 border-gray-200">
                   <Webcam 
-                    ref={webcamRef} 
+                    ref={webcamRef}
+                    audio={false}
                     screenshotFormat="image/jpeg" 
                     className="w-full"
-                    videoConstraints={{ width: 1280, height: 720, facingMode: 'user' }}
+                    videoConstraints={{ 
+                      width: 1280, 
+                      height: 720, 
+                      facingMode: 'user' 
+                    }}
+                    onUserMedia={() => {
+                      console.log('Webcam ready');
+                    }}
+                    onUserMediaError={(error) => {
+                      console.error('Webcam error:', error);
+                    }}
                   />
                   {autoCapture && (
                     <div className="absolute top-4 right-4 bg-gradient-to-r from-black/80 to-black/70 backdrop-blur-sm text-white px-4 py-3 rounded-xl flex items-center gap-3 shadow-lg border border-white/10">

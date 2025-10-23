@@ -80,6 +80,7 @@ export function useGestureDetection(
           // Add to sequence if different from last gesture
           if (fingers !== lastGesture) {
             gestureSequenceRef.current.push(fingers);
+            console.log('Gesture sequence:', gestureSequenceRef.current);
 
             // Keep only last 5 gestures
             if (gestureSequenceRef.current.length > 5) {
@@ -96,6 +97,7 @@ export function useGestureDetection(
                 last3[2] === 3 &&
                 now - lastCaptureTimeRef.current > 3000
               ) {
+                console.log('✅ Gesture sequence detected: 1-2-3! Capturing photo...');
                 setIsProcessing(true);
                 lastCaptureTimeRef.current = now;
                 gestureSequenceRef.current = [];
@@ -103,7 +105,7 @@ export function useGestureDetection(
                 // Trigger capture after a short delay
                 setTimeout(() => {
                   onGestureDetected();
-                  setIsProcessing(false);
+                  setTimeout(() => setIsProcessing(false), 1000);
                 }, 500);
               }
             }
@@ -117,18 +119,27 @@ export function useGestureDetection(
   );
 
   useEffect(() => {
-    if (!videoElement || !enabled) return;
+    if (!videoElement || !enabled) {
+      console.log('Gesture detection not initialized:', { videoElement: !!videoElement, enabled });
+      return;
+    }
 
+    console.log('Initializing MediaPipe Hands...');
     let isMounted = true;
 
     // Dynamically import MediaPipe modules
     const initHands = async () => {
       try {
+        console.log('Loading MediaPipe modules...');
         const { Hands } = await import('@mediapipe/hands');
         const { Camera } = await import('@mediapipe/camera_utils');
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          console.log('Component unmounted, skipping initialization');
+          return;
+        }
 
+        console.log('Creating Hands instance...');
         const hands = new Hands({
           locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
         });
@@ -143,6 +154,7 @@ export function useGestureDetection(
         hands.onResults(onResults);
         handsRef.current = hands;
 
+        console.log('Starting camera...');
         const camera = new Camera(videoElement, {
           onFrame: async () => {
             if (handsRef.current) {
@@ -155,14 +167,16 @@ export function useGestureDetection(
 
         await camera.start();
         cameraRef.current = camera;
+        console.log('✅ Gesture detection initialized successfully!');
       } catch (error) {
-        console.error('Failed to initialize MediaPipe:', error);
+        console.error('❌ Failed to initialize MediaPipe:', error);
       }
     };
 
     initHands();
 
     return () => {
+      console.log('Cleaning up gesture detection...');
       isMounted = false;
       if (cameraRef.current) {
         cameraRef.current.stop();

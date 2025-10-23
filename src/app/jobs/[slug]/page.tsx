@@ -4,18 +4,40 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Job } from '@/lib/types';
 import Link from 'next/link';
+import { use } from 'react';
 
-export default function JobDetailPage({ params }: { params: { slug: string } }) {
+export default function JobDetailPage({ params }: { params: Promise<{ slug: string }> | { slug: string } }) {
+  // Handle both Promise and direct params for Next.js compatibility
+  const resolvedParams = params instanceof Promise ? use(params) : params;
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('jobs').select('*').eq('slug', params.slug).single();
-      setJob(data);
-      setLoading(false);
+      try {
+        console.log('Looking for job with slug:', resolvedParams.slug);
+        const { data, error: dbError } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('slug', resolvedParams.slug)
+          .single();
+        
+        if (dbError) {
+          console.error('Database error:', dbError);
+          setError(dbError.message);
+        }
+        
+        console.log('Found job:', data);
+        setJob(data);
+      } catch (err) {
+        console.error('Error fetching job:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, [params.slug]);
+  }, [resolvedParams.slug]);
 
   if (loading) {
     return (
@@ -34,7 +56,13 @@ export default function JobDetailPage({ params }: { params: { slug: string } }) 
         <div className="text-center bg-white rounded-2xl shadow-xl p-12 border border-gray-100 max-w-md">
           <div className="text-6xl mb-4">❌</div>
           <h1 className="text-3xl font-bold text-gray-900 mb-3">Job Not Found</h1>
-          <p className="text-gray-600 mb-6">This position may have been removed or the link is incorrect</p>
+          <p className="text-gray-600 mb-2">This position may have been removed or the link is incorrect</p>
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+          <p className="text-sm text-gray-500 mb-6 mt-4">Looking for slug: <code className="bg-gray-100 px-2 py-1 rounded">{resolvedParams.slug}</code></p>
           <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors">
             ← Back to all jobs
           </Link>
