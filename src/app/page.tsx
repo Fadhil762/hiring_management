@@ -11,84 +11,90 @@ export default function Home(){
   const activeJobs = jobs.filter(j => j.status === 'active');
   
   return(
-    <main className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-blue-50">
+    <main className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-5xl font-bold mb-4">Find Your Dream Job</h1>
-            <p className="text-xl text-teal-100 mb-8">Join our team and build your career with us</p>
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
-              <span className="font-semibold">{activeJobs.length} Open Positions Available</span>
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl font-bold text-gray-900 mb-3">Careers at Rakamin</h1>
+            <p className="text-lg text-gray-600 mb-6">
+              Join our team and help us build the future of hiring management. 
+              We&apos;re looking for talented individuals who are passionate about technology and innovation.
+            </p>
+            <div className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 text-teal-700">
+                {activeJobs.length}
+              </span>
+              <span>Open Position{activeJobs.length !== 1 ? 's' : ''}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Jobs Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeJobs.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
-            <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-2">No Open Positions Yet</h3>
-            <p className="text-gray-600">Check back soon for exciting opportunities!</p>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+            <div className="text-5xl mb-3">�</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Open Positions</h3>
+            <p className="text-gray-600">Check back soon for new opportunities!</p>
           </div>
         ) : (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Open Positions</h2>
-              <p className="text-gray-600">Explore opportunities and apply to your perfect role</p>
-            </div>
+          <div className="space-y-4">
+            {activeJobs.map(job => (
+              <div 
+                key={job.id} 
+                className="bg-white rounded-lg border border-gray-200 hover:border-teal-500 hover:shadow-md transition-all duration-200"
+              >
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        {job.title}
+                      </h3>
+                      
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
+                        {job.department && (
+                          <div className="flex items-center gap-1.5">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span>{job.department}</span>
+                          </div>
+                        )}
+                        
+                        {job.salary_display && job.salary_display !== '—' && (
+                          <div className="flex items-center gap-1.5">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-medium text-gray-900">{job.salary_display}</span>
+                          </div>
+                        )}
+                      </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeJobs.map(job => (
-                <Link 
-                  key={job.id} 
-                  href={`/jobs/${job.slug}`} 
-                  className="group bg-white rounded-2xl border-2 border-gray-200 hover:border-teal-400 p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <span className="text-2xl">💼</span>
+                      {job.description && (
+                        <p className="text-gray-600 text-sm line-clamp-2 mb-4">
+                          {job.description}
+                        </p>
+                      )}
                     </div>
-                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold border border-green-200">
-                      ✅ Active
-                    </span>
+
+                    <div className="flex-shrink-0">
+                      <Link 
+                        href={`/jobs/${job.slug}`}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors"
+                      >
+                        View & Apply
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
                   </div>
-
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors line-clamp-2">
-                    {job.title}
-                  </h3>
-
-                  {job.department && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                      <span>🏢</span>
-                      <span className="font-medium">{job.department}</span>
-                    </div>
-                  )}
-
-                  {job.salary_display && job.salary_display !== '—' && (
-                    <div className="flex items-center gap-2 mb-4 text-teal-700 font-semibold">
-                      <span>💰</span>
-                      <span>{job.salary_display}</span>
-                    </div>
-                  )}
-
-                  {job.description && (
-                    <p className="text-gray-600 text-sm line-clamp-3 mb-4">
-                      {job.description}
-                    </p>
-                  )}
-
-                  <div className="pt-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between text-teal-600 font-semibold group-hover:text-teal-700 transition-colors">
-                      <span>View Details</span>
-                      <span className="transform group-hover:translate-x-1 transition-transform">→</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -13,18 +13,27 @@ export default function CreateJobModal({ onClose, onCreated }: { onClose: () => 
 
   type FieldMode = 'mandatory' | 'optional' | 'off';
   const [fields, setFields] = useState<{ key: string; mode: FieldMode }[]>([
+    // Personal Information Section
     { key: 'full_name', mode: 'mandatory' },
-    { key: 'photo_profile', mode: 'optional' },
-    { key: 'gender', mode: 'optional' },
-    { key: 'domicile', mode: 'optional' },
     { key: 'email', mode: 'mandatory' },
     { key: 'phone_number', mode: 'mandatory' },
+    { key: 'date_of_birth', mode: 'optional' },
+    { key: 'gender', mode: 'optional' },
+    { key: 'domicile', mode: 'optional' },
+    // Professional Information Section
     { key: 'linkedin_link', mode: 'optional' },
-    { key: 'date_of_birth', mode: 'off' },
+    { key: 'portfolio_link', mode: 'optional' },
+    { key: 'resume_link', mode: 'optional' },
+    // Additional Information Section
+    { key: 'expected_salary', mode: 'optional' },
+    { key: 'available_start_date', mode: 'optional' },
+    { key: 'cover_letter', mode: 'optional' },
   ]);
 
   const save = async () => {
     if (!title || !slug) return alert('Title and slug required');
+    
+    console.log('🚀 Creating job with data:', { title, slug, description, department, status, salaryMin, salaryMax, currency });
     
     // Build salary display string
     const salaryDisplay = salaryMin && salaryMax 
@@ -43,16 +52,35 @@ export default function CreateJobModal({ onClose, onCreated }: { onClose: () => 
       salary_display: salaryDisplay 
     }).select('*').single();
     
-    if (error || !job) return alert('Failed to create job');
+    if (error) {
+      console.error('❌ Error creating job:', error);
+      return alert(`Failed to create job: ${error.message || JSON.stringify(error)}`);
+    }
+    
+    if (!job) {
+      console.error('❌ No job returned after insert');
+      return alert('Failed to create job: No data returned');
+    }
+    
+    console.log('✅ Job created successfully:', job);
 
-  const config: { application_form: { sections: { title: string; fields: Record<string, unknown>[] }[] } } = {
+    const config: { application_form: { sections: { title: string; fields: Record<string, unknown>[] }[] } } = {
       application_form: {
         sections: [{ title: 'Minimum Profile Information Required', fields: fields.map(f => ({ key: f.key, validation: f.mode==='mandatory' ? { required: true } : f.mode==='optional' ? { required: false } : undefined })) }]
       }
     };
 
-    await supabase.from('job_configs').insert({ job_id: job.id, config });
-    onCreated(); onClose();
+    console.log('📝 Creating job config:', config);
+    const { error: configError } = await supabase.from('job_configs').insert({ job_id: job.id, config });
+    
+    if (configError) {
+      console.error('❌ Error creating job config:', configError);
+      return alert(`Job created but config failed: ${configError.message || JSON.stringify(configError)}`);
+    }
+    
+    console.log('✅ Job config created successfully!');
+    onCreated(); 
+    onClose();
   };
 
   return (
@@ -89,7 +117,7 @@ export default function CreateJobModal({ onClose, onCreated }: { onClose: () => 
               <div className="sm:col-span-2">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Job Title <span className="text-red-500">*</span></label>
                 <input 
-                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm sm:text-base" 
+                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm sm:text-base text-gray-900 bg-white placeholder:text-gray-400" 
                   placeholder="e.g. Senior Frontend Engineer" 
                   value={title} 
                   onChange={e=>setTitle(e.target.value)} 
@@ -99,7 +127,7 @@ export default function CreateJobModal({ onClose, onCreated }: { onClose: () => 
               <div className="sm:col-span-2 md:col-span-1">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Slug (URL) <span className="text-red-500">*</span></label>
                 <input 
-                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all font-mono text-xs sm:text-sm" 
+                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all font-mono text-xs sm:text-sm text-gray-900 bg-white placeholder:text-gray-400" 
                   placeholder="e.g. senior-frontend-engineer" 
                   value={slug} 
                   onChange={e=>setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))} 
@@ -109,7 +137,7 @@ export default function CreateJobModal({ onClose, onCreated }: { onClose: () => 
               <div className="sm:col-span-2 md:col-span-1">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Department</label>
                 <input 
-                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm sm:text-base" 
+                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm sm:text-base text-gray-900 bg-white placeholder:text-gray-400" 
                   placeholder="e.g. Engineering" 
                   value={department} 
                   onChange={e=>setDepartment(e.target.value)} 
@@ -119,7 +147,7 @@ export default function CreateJobModal({ onClose, onCreated }: { onClose: () => 
               <div className="sm:col-span-2">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Job Description</label>
                 <textarea 
-                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none text-sm sm:text-base" 
+                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none text-sm sm:text-base text-gray-900 bg-white placeholder:text-gray-400" 
                   placeholder="Describe the role, responsibilities, and requirements..." 
                   rows={4}
                   value={description} 
@@ -141,7 +169,7 @@ export default function CreateJobModal({ onClose, onCreated }: { onClose: () => 
                 <label className="block text-sm font-semibold text-gray-700 mb-2">💵 Minimum Salary</label>
                 <input 
                   type="number" 
-                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm sm:text-base" 
+                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm sm:text-base text-gray-900 bg-white placeholder:text-gray-400" 
                   placeholder="50000" 
                   value={salaryMin} 
                   onChange={e=>setSalaryMin(e.target.value)} 
@@ -152,7 +180,7 @@ export default function CreateJobModal({ onClose, onCreated }: { onClose: () => 
                 <label className="block text-sm font-semibold text-gray-700 mb-2">💰 Maximum Salary</label>
                 <input 
                   type="number" 
-                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm sm:text-base" 
+                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm sm:text-base text-gray-900 bg-white placeholder:text-gray-400" 
                   placeholder="80000" 
                   value={salaryMax} 
                   onChange={e=>setSalaryMax(e.target.value)} 
@@ -162,7 +190,7 @@ export default function CreateJobModal({ onClose, onCreated }: { onClose: () => 
               <div className="sm:col-span-2">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Currency</label>
                 <select 
-                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all bg-white text-sm sm:text-base" 
+                  className="w-full border border-gray-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all bg-white text-sm sm:text-base text-gray-900" 
                   value={currency} 
                   onChange={e=>setCurrency(e.target.value)}
                 >

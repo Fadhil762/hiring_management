@@ -4,11 +4,17 @@ import { useEffect } from 'react';
 import { useCandidatesStore } from '@/store/candidatesStore';
 import CandidatesTable from '@/components/CandidatesTable';
 import Link from 'next/link';
+import { use } from 'react';
 
-export default function CandidatePage({ params }: { params: { id: string } }) {
+export default function CandidatePage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+	// Handle both Promise and direct params for Next.js 16 compatibility
+	const resolvedParams = params instanceof Promise ? use(params) : params;
 	const { rows, fetchByJob } = useCandidatesStore();
 
-	useEffect(() => { fetchByJob(params.id); }, [params.id, fetchByJob]);
+	useEffect(() => { 
+		console.log('🎯 Candidate page mounted with job ID:', resolvedParams.id);
+		fetchByJob(resolvedParams.id); 
+	}, [resolvedParams.id, fetchByJob]);
 
 	return (
 		<main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-teal-50/20 py-8">

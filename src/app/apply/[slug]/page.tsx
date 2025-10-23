@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useForm } from 'react-hook-form';
 import Webcam from 'react-webcam';
 import Image from 'next/image';
+import Link from 'next/link';
 import { zodSchemaFromFields, visibleFields } from '@/lib/form';
 import { useGestureDetection } from '@/hooks/useGestureDetection';
 import type { Job, JobConfig, ApplicationField } from '@/lib/types';
@@ -141,40 +142,35 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
   );
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-teal-50/20">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white">
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          <div className="flex items-center gap-2 text-teal-100 mb-3">
+    <main className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Link href={`/jobs/${resolvedParams.slug}`} className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors mb-4">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            <span className="text-sm font-medium">Job Application</span>
-          </div>
-          <h1 className="text-4xl font-bold mb-2">{job.title}</h1>
+            <span>Back to job</span>
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">Apply for {job.title}</h1>
           {job.department && (
-            <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm">
-              🏢 {job.department}
-            </div>
+            <p className="text-gray-600 mt-1">{job.department}</p>
           )}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Photo Capture Section */}
-        <section className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-gray-50 to-teal-50/30 px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">1</span>
-              <h2 className="text-xl font-bold text-gray-900">Profile Photo</h2>
-            </div>
-            <p className="text-sm text-gray-600 mt-1 ml-10">Capture your profile photo using our gesture detection feature</p>
+        <section className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Profile Photo</h2>
+            <p className="text-sm text-gray-600 mt-1">Take a professional photo for your application</p>
           </div>
           
           <div className="p-6">
             {!photo ? (
-              <div className="space-y-5">
-                <div className="relative rounded-xl overflow-hidden shadow-lg border-2 border-gray-200">
+              <div className="space-y-4">
+                <div className="relative rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
                   <Webcam 
                     ref={webcamRef}
                     audio={false}
@@ -193,71 +189,74 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
                     }}
                   />
                   {autoCapture && (
-                    <div className="absolute top-4 right-4 bg-gradient-to-r from-black/80 to-black/70 backdrop-blur-sm text-white px-4 py-3 rounded-xl flex items-center gap-3 shadow-lg border border-white/10">
+                    <div className="absolute top-4 right-4 bg-black/80 text-white px-3 py-2 rounded-lg flex items-center gap-2 text-sm">
                       {isProcessing ? (
                         <>
-                          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50" />
-                          <div>
-                            <div className="text-sm font-bold">Capturing...</div>
-                            <div className="text-xs text-green-200">Please wait</div>
-                          </div>
+                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                          <span>Capturing...</span>
                         </>
                       ) : (
                         <>
-                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/50" />
-                          <div>
-                            <div className="text-sm font-bold">Detecting Gesture</div>
-                            <div className="text-xs text-gray-200">{fingerCount} finger{fingerCount !== 1 ? 's' : ''} detected</div>
-                          </div>
+                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                          <span>{fingerCount} finger{fingerCount !== 1 ? 's' : ''}</span>
                         </>
                       )}
                     </div>
                   )}
                 </div>
                 
-                <div className="bg-gradient-to-r from-blue-50 to-teal-50 border-2 border-blue-200 rounded-xl p-5">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center text-xl flex-shrink-0">
-                      💡
-                    </div>
-                    <div>
-                      <div className="font-bold text-blue-900 mb-1">Gesture Detection Guide</div>
-                      <p className="text-sm text-blue-800">Enable auto-capture below, then show your fingers in this sequence: <strong>1 → 2 → 3</strong> to automatically capture your photo!</p>
-                    </div>
+                <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="text-blue-900">
+                    <strong>Tip:</strong> Enable gesture detection and show 1 → 2 → 3 fingers to auto-capture
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <button 
                     onClick={capture} 
-                    className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-teal-800 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                    type="button"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
                   >
-                    📸 Capture Photo
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Capture Photo
                   </button>
-                  <label className="inline-flex items-center gap-3 text-sm cursor-pointer bg-gray-50 px-5 py-3 rounded-xl border-2 border-gray-200 hover:border-teal-400 hover:bg-teal-50 transition-all">
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
                     <input 
                       type="checkbox" 
                       checked={autoCapture} 
                       onChange={e=>setAutoCapture(e.target.checked)}
-                      className="w-5 h-5 text-teal-600 rounded focus:ring-2 focus:ring-teal-500"
+                      className="w-4 h-4 text-teal-600 rounded focus:ring-2 focus:ring-teal-500"
                     />
-                    <span className="font-semibold text-gray-700">Enable Gesture Auto-Capture</span>
+                    <span className="text-sm text-gray-700">Enable gesture auto-capture</span>
                   </label>
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="relative rounded-xl overflow-hidden shadow-lg border-2 border-teal-200">
+              <div className="space-y-3">
+                <div className="relative rounded-lg overflow-hidden border-2 border-teal-200">
                   <Image src={photo!} alt="preview" width={1280} height={720} className="w-full" unoptimized />
-                  <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg font-semibold shadow-lg flex items-center gap-2">
-                    <span className="text-xl">✓</span> Photo Captured
+                  <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1.5 rounded-lg font-medium text-sm flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Photo captured
                   </div>
                 </div>
                 <button 
                   onClick={() => setPhoto(null)} 
-                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center gap-2"
+                  type="button"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  🔄 Retake Photo
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Retake Photo
                 </button>
               </div>
             )}
@@ -265,98 +264,178 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
         </section>
 
         {/* Application Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          <section className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-50 to-teal-50/30 px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">2</span>
-                <h2 className="text-xl font-bold text-gray-900">Application Information</h2>
-              </div>
-              <p className="text-sm text-gray-600 mt-1 ml-10">Please fill in all required fields marked with <span className="text-red-500">*</span></p>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <section className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Application Information</h2>
+              <p className="text-sm text-gray-600 mt-1">Please fill in all required fields marked with <span className="text-red-600">*</span></p>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6">
               {successMessage && (
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 text-green-800 rounded-xl p-4 flex items-start gap-3">
-                  <span className="text-2xl">✅</span>
+                <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                   <div>
-                    <div className="font-bold mb-1">Success!</div>
-                    <div className="text-sm">{successMessage}</div>
+                    <div className="font-semibold text-green-900 mb-1">Success!</div>
+                    <div className="text-sm text-green-800">{successMessage}</div>
                   </div>
                 </div>
               )}
               {errorMessage && (
-                <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 text-red-800 rounded-xl p-4 flex items-start gap-3">
-                  <span className="text-2xl">❌</span>
+                <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                  <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                   <div>
-                    <div className="font-bold mb-1">Error</div>
-                    <div className="text-sm">{errorMessage}</div>
+                    <div className="font-semibold text-red-900 mb-1">Error</div>
+                    <div className="text-sm text-red-800">{errorMessage}</div>
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {fields.map(f => (
-                  <div key={f.key} className={`space-y-2 ${(() => {
-                    const keyLower = f.key.toLowerCase();
-                    return keyLower.includes('description') || keyLower.includes('bio') || keyLower.includes('cover') ? 'md:col-span-2' : '';
-                  })()}`}>
-                    <label className="text-sm font-bold text-gray-700">
-                      {f.label ?? f.key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} {f.validation?.required && <span className="text-red-500">*</span>}
-                    </label>
-                    {(() => {
-                      const fieldErr = (errors as FormErrors)[f.key];
-                      const hasError = !!fieldErr?.message;
-                      const base = 'w-full rounded-xl border-2 px-4 py-3 focus:outline-none focus:ring-2 transition-all';
-                      const errorClass = hasError ? 'border-red-300 focus:ring-red-200 focus:border-red-500' : 'border-gray-300 focus:ring-teal-200 focus:border-teal-500';
-                      const keyLower = f.key.toLowerCase();
-                      const inputType = keyLower.includes('email') ? 'email' : keyLower.includes('phone') ? 'tel' : keyLower.includes('date') ? 'date' : keyLower.includes('linkedin') ? 'url' : 'text';
+              {/* Group fields by section */}
+              {(() => {
+                const personalFields = fields.filter(f => ['full_name', 'email', 'phone_number', 'date_of_birth', 'gender', 'domicile'].includes(f.key));
+                const professionalFields = fields.filter(f => ['linkedin_link', 'portfolio_link', 'resume_link'].includes(f.key));
+                const additionalFields = fields.filter(f => ['expected_salary', 'available_start_date', 'cover_letter'].includes(f.key));
+                const otherFields = fields.filter(f => 
+                  !['full_name', 'email', 'phone_number', 'date_of_birth', 'gender', 'domicile', 
+                     'linkedin_link', 'portfolio_link', 'resume_link', 
+                     'expected_salary', 'available_start_date', 'cover_letter'].includes(f.key)
+                );
 
-                      if (keyLower.includes('description') || keyLower.includes('bio') || keyLower.includes('cover')) {
-                        return (
-                          <>
-                            <textarea {...register(f.key)} className={`${base} ${errorClass} resize-none`} rows={4} />
-                            {hasError && <p className="text-sm text-red-600 font-medium flex items-center gap-1"><span>⚠️</span>{String(fieldErr?.message)}</p>}
-                          </>
-                        );
-                      }
+                const renderField = (f: typeof fields[0]) => {
+                  const fieldErr = (errors as FormErrors)[f.key];
+                  const hasError = !!fieldErr?.message;
+                  const base = 'w-full rounded-lg border px-4 py-2.5 focus:outline-none focus:ring-2 transition-colors text-gray-900 bg-white placeholder:text-gray-400';
+                  const errorClass = hasError ? 'border-red-300 focus:ring-red-100 focus:border-red-500' : 'border-gray-300 focus:ring-teal-100 focus:border-teal-500';
+                  const keyLower = f.key.toLowerCase();
+                  
+                  let inputType = 'text';
+                  if (keyLower.includes('email')) inputType = 'email';
+                  else if (keyLower.includes('phone')) inputType = 'tel';
+                  else if (keyLower.includes('date') || keyLower === 'available_start_date') inputType = 'date';
+                  else if (keyLower.includes('link') || keyLower.includes('url')) inputType = 'url';
+                  else if (keyLower.includes('salary')) inputType = 'number';
 
-                      return (
-                        <>
-                          <input {...register(f.key)} type={inputType} className={`${base} ${errorClass}`} />
-                          {hasError && <p className="text-sm text-red-600 font-medium flex items-center gap-1"><span>⚠️</span>{String(fieldErr?.message)}</p>}
-                        </>
-                      );
-                    })()}
+                  const isTextarea = keyLower.includes('cover_letter') || keyLower.includes('description') || keyLower.includes('bio');
+                  const isFullWidth = isTextarea;
+
+                  return (
+                    <div key={f.key} className={`space-y-1.5 ${isFullWidth ? 'md:col-span-2' : ''}`}>
+                      <label className="text-sm font-semibold text-gray-700">
+                        {f.label ?? f.key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} 
+                        {f.validation?.required && <span className="text-red-600"> *</span>}
+                      </label>
+                      {isTextarea ? (
+                        <textarea 
+                          {...register(f.key)} 
+                          className={`${base} ${errorClass} resize-none`} 
+                          rows={4} 
+                          placeholder={`Enter your ${f.label ?? f.key.replace(/_/g, ' ')}`} 
+                        />
+                      ) : (
+                        <input 
+                          {...register(f.key)} 
+                          type={inputType} 
+                          className={`${base} ${errorClass}`} 
+                          placeholder={`Enter your ${f.label ?? f.key.replace(/_/g, ' ')}`} 
+                        />
+                      )}
+                      {hasError && (
+                        <p className="text-xs text-red-600 font-medium flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {String(fieldErr?.message)}
+                        </p>
+                      )}
+                    </div>
+                  );
+                };
+
+                return (
+                  <div className="space-y-6">
+                    {/* Personal Information Section */}
+                    {personalFields.length > 0 && (
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900 mb-3">
+                          Personal Information
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {personalFields.map(renderField)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Professional Information Section */}
+                    {professionalFields.length > 0 && (
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900 mb-3">
+                          Professional Information
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {professionalFields.map(renderField)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Information Section */}
+                    {additionalFields.length > 0 && (
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900 mb-3">
+                          Additional Information
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {additionalFields.map(renderField)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Other Fields (if any custom fields exist) */}
+                    {otherFields.length > 0 && (
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900 mb-3">
+                          Additional Requirements
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {otherFields.map(renderField)}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
             </div>
           </section>
 
           {/* Submit Section */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <button 
               type="submit"
               disabled={submitting} 
-              className="px-8 py-4 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-bold hover:from-teal-700 hover:to-teal-800 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-lg"
+              className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Submitting...
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Submitting...</span>
                 </>
               ) : (
                 <>
-                  <span>📤</span>
-                  Submit Application
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Submit Application</span>
                 </>
               )}
             </button>
             <button 
               type="button" 
               onClick={() => { reset(); setPhoto(null); setSuccessMessage(null); setErrorMessage(null); }} 
-              className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all"
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
             >
               Reset Form
             </button>
