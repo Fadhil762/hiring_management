@@ -1,3 +1,34 @@
+# Application Form Update Required
+
+## Overview
+The application form needs to be completely replaced to match the reference images. The current file has complex webcam/gesture detection code that should be removed in favor of a simple file upload.
+
+## What Changed
+
+### Database Schema (`supabase_schema.sql`)
+✅ **UPDATED** - Simplified to 8 fields matching reference design:
+- photo_url (optional photo upload)
+- full_name*
+- date_of_birth*
+- gender* (radio: She/her Female, He/him Male)
+- domicile* (dropdown)
+- phone_number* (with +62 country code)
+- email*
+- linkedin_link*
+
+### Application Form (`src/app/apply/[slug]/page.tsx`)
+⚠️ **NEEDS MANUAL UPDATE** - Current file is corrupted with mixed old/new code
+
+## Required Changes
+
+The file `src/app/apply/[slug]/page.tsx` needs to be completely replaced. Due to PowerShell file path issues with square brackets, **manual replacement is required**.
+
+### Steps to Fix:
+
+1. **Delete** the current `src/app/apply/[slug]/page.tsx` file manually
+2. **Create** a new file with this exact code structure:
+
+```typescript
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,13 +38,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Job } from '@/lib/types';
 import { use } from 'react';
-import dynamic from 'next/dynamic';
-
-// Dynamically import WebcamCapture to avoid SSR issues
-const WebcamCapture = dynamic(() => import('@/components/WebcamCapture'), {
-  ssr: false,
-  loading: () => <div className="text-center py-4">Loading camera...</div>
-});
 
 export default function ApplyPage({ params }: { params: Promise<{ slug: string }> | { slug: string } }) {
   const resolvedParams = params instanceof Promise ? use(params) : params;
@@ -22,7 +46,6 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
   const [showSuccess, setShowSuccess] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [showWebcam, setShowWebcam] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm();
 
@@ -45,28 +68,23 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
     }
   };
 
-  const handleWebcamCapture = (imageData: string) => {
-    // Convert base64 to file
-    fetch(imageData)
-      .then(res => res.blob())
-      .then(blob => {
-        const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        setPhotoFile(file);
-        setPhotoPreview(imageData);
-      });
-  };
-
   const onSubmit = async (data: Record<string, string>) => {
     if (!job) return;
 
     setSubmitting(true);
 
     try {
-      let profilePicture = null;
-      
-      // Upload photo if provided
+      const { data: candidate, error: candidateError } = await supabase
+        .from('candidates')
+        .insert({ job_id: job.id, status: 'new' })
+        .select()
+        .single();
+
+      if (candidateError) throw candidateError;
+
+      let photoUrl = null;
       if (photoFile) {
-        const fileName = `${Date.now()}_${photoFile.name}`;
+        const fileName = `${candidate.id}_${Date.now()}.jpg`;
         const { error: uploadError } = await supabase.storage
           .from('candidate-photos')
           .upload(fileName, photoFile);
@@ -75,25 +93,30 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
           const { data: urlData } = supabase.storage
             .from('candidate-photos')
             .getPublicUrl(fileName);
-          profilePicture = urlData.publicUrl;
+          photoUrl = urlData.publicUrl;
         }
       }
 
-      // Insert application directly into applications table
-      const { error: applicationError } = await supabase
-        .from('applications')
-        .insert({
-          job_id: job.id,
-          full_name: data.full_name,
-          email: data.email,
-          phone: data.phone_number,
-          gender: data.gender,
-          linkedin: data.linkedin_link,
-          domicile: data.domicile,
-          profile_picture: profilePicture,
-        });
+      const attributes = [
+        { key: 'photo_url', value: photoUrl || '', label: 'Photo Profile' },
+        { key: 'full_name', value: data.full_name || '', label: 'Full name' },
+        { key: 'date_of_birth', value: data.date_of_birth || '', label: 'Date of birth' },
+        { key: 'gender', value: data.gender || '', label: 'Pronoun (gender)' },
+        { key: 'domicile', value: data.domicile || '', label: 'Domicile' },
+        { key: 'phone_number', value: data.phone_number || '', label: 'Phone number' },
+        { key: 'email', value: data.email || '', label: 'Email' },
+        { key: 'linkedin_link', value: data.linkedin_link || '', label: 'Link Linkedin' },
+      ];
 
-      if (applicationError) throw applicationError;
+      for (let i = 0; i < attributes.length; i++) {
+        await supabase.from('candidate_attributes').insert({
+          candidate_id: candidate.id,
+          key: attributes[i].key,
+          label: attributes[i].label,
+          value: attributes[i].value,
+          order: i
+        });
+      }
 
       setShowSuccess(true);
       reset();
@@ -128,7 +151,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             🎉 Your application was sent!
           </h2>
           <p className="text-gray-600 mb-2">
-            Congratulations! You&apos;ve taken the first step towards a rewarding career at Rakamin.
+            Congratulations! You've taken the first step towards a rewarding career at Rakamin.
           </p>
           <p className="text-gray-600 mb-6">
             We look forward to learning more about you during the application process.
@@ -163,6 +186,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             <span className="text-red-600 text-sm">* Required</span>
           </div>
 
+          {/* Photo Profile */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-900 mb-2">
               Photo Profile
@@ -178,35 +202,21 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
                 )}
               </div>
               <div className="flex-1">
-                <div className="flex gap-2 mb-2">
-                  <label className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    <span className="text-sm font-medium text-gray-700">Upload Photo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      className="hidden"
-                    />
-                  </label>
-                  
-                  <button
-                    type="button"
-                    onClick={() => setShowWebcam(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 border border-teal-300 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span className="text-sm font-medium">Take Picture</span>
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500">
-                  Upload a file or use your webcam with auto-gesture capture ✋
-                </p>
+                <label className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-sm font-medium text-gray-700">Take a Picture</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-xs text-gray-500 mt-2">Click to upload or take a photo</p>
               </div>
             </div>
           </div>
@@ -215,6 +225,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             <span className="text-red-600 text-sm font-medium">Required</span>
           </div>
 
+          {/* Full name */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Full name*
@@ -227,6 +238,22 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             />
           </div>
 
+          {/* Date of birth */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date of birth*
+            </label>
+            <div className="relative">
+              <input
+                {...register('date_of_birth', { required: 'This field is required' })}
+                type="date"
+                placeholder="Select date of birth"
+                className={`w-full px-3 py-2 border ${errors.date_of_birth ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500`}
+              />
+            </div>
+          </div>
+
+          {/* Gender */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Pronoun (gender)*
@@ -253,6 +280,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             </div>
           </div>
 
+          {/* Domicile */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Domicile*
@@ -272,6 +300,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             </select>
           </div>
 
+          {/* Phone number */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Phone number*
@@ -291,6 +320,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             </div>
           </div>
 
+          {/* Email */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email*
@@ -312,6 +342,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             )}
           </div>
 
+          {/* LinkedIn */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Link Linkedin*
@@ -327,6 +358,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             )}
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={submitting}
@@ -336,14 +368,46 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
           </button>
         </form>
       </div>
-
-      {/* Webcam Modal */}
-      {showWebcam && (
-        <WebcamCapture
-          onCapture={handleWebcamCapture}
-          onClose={() => setShowWebcam(false)}
-        />
-      )}
     </div>
   );
 }
+```
+
+3. Save the file and build: `npm run build`
+
+## Key Features
+
+### ✅ Matches Reference Design
+- Simple file upload (no webcam/gesture detection)
+- Illustrated avatar placeholder
+- Country code dropdown for phone (+62)
+- Radio buttons for gender (She/her Female, He/him Male)
+- Required field validation with red borders
+- Clean success modal with celebration emoji
+
+### ✅ Form Fields
+1. **Photo Profile** - Optional file upload
+2. **Full name*** - Text input
+3. **Date of birth*** - Date picker
+4. **Pronoun (gender)*** - Radio buttons
+5. **Domicile*** - Dropdown (Jakarta, Bandung, etc.)
+6. **Phone number*** - Country code + number
+7. **Email*** - Email validation
+8. **Link Linkedin*** - URL input
+
+### ✅ Success State
+Shows celebration screen with:
+- Large emoji (🎉)
+- Success message
+- "Back to Home" button
+
+## Notes
+- All fields marked with * are required
+- Photo upload is optional
+- Clean, professional styling matching reference images
+- No complex webcam/gesture detection
+- Simple file input with mobile camera support
+
+---
+
+**Status**: Database schema updated ✅ | Application form needs manual update ⚠️

@@ -1,356 +1,250 @@
--- ============================================
--- Hiring Management Database Schema Update
--- ============================================
--- Run this script in Supabase SQL Editor
--- Make sure to run each section separately if needed
+-- =============================================
+-- HIRING PLATFORM DATABASE SCHEMA
+-- Run this in Supabase SQL Editor
+-- =============================================
 
--- ============================================
--- 1. DROP EXISTING TABLES (Optional - only if you want to start fresh)
--- ============================================
--- WARNING: This will delete all existing data!
--- Uncomment these lines if you want to recreate tables from scratch
-
--- DROP TABLE IF EXISTS candidate_attributes CASCADE;
--- DROP TABLE IF EXISTS candidates CASCADE;
--- DROP TABLE IF EXISTS job_configs CASCADE;
+-- Drop existing tables if needed (for fresh setup)
+-- DROP TABLE IF EXISTS applications CASCADE;
 -- DROP TABLE IF EXISTS jobs CASCADE;
 
--- ============================================
--- 2. CREATE TABLES
--- ============================================
-
--- Jobs Table
+-- =============================================
+-- JOBS TABLE
+-- =============================================
 CREATE TABLE IF NOT EXISTS jobs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   slug TEXT UNIQUE NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
   department TEXT,
-  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'inactive')),
-  salary_min INTEGER,
-  salary_max INTEGER,
+  salary_min INTEGER CHECK (salary_min >= 0),
+  salary_max INTEGER CHECK (salary_max >= salary_min),
   currency TEXT DEFAULT 'USD',
   salary_display TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('active', 'inactive', 'draft')),
+  company TEXT,
+  location TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );
 
--- Job Configs Table
-CREATE TABLE IF NOT EXISTS job_configs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- =============================================
+-- APPLICATIONS TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS applications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-  config JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  full_name TEXT,
+  email TEXT,
+  phone TEXT,
+  gender TEXT,
+  linkedin TEXT,
+  domicile TEXT,
+  profile_picture TEXT, -- Base64 encoded image or URL
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+);
+
+-- =============================================
+-- JOB_CONFIGS TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS job_configs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  config JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
   UNIQUE(job_id)
 );
 
--- Candidates Table
-CREATE TABLE IF NOT EXISTS candidates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-  status TEXT DEFAULT 'new' CHECK (status IN ('new', 'reviewing', 'shortlisted', 'rejected', 'hired')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Candidate Attributes Table
-CREATE TABLE IF NOT EXISTS candidate_attributes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  candidate_id UUID NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
-  key TEXT NOT NULL,
-  label TEXT,
-  value TEXT,
-  "order" INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  CONSTRAINT unique_candidate_attribute UNIQUE (candidate_id, key)
-);
-
--- ============================================
--- 3. CREATE INDEXES FOR PERFORMANCE
--- ============================================
-
--- Jobs indexes
-CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+-- =============================================
+-- INDEXES FOR PERFORMANCE
+-- =============================================
 CREATE INDEX IF NOT EXISTS idx_jobs_slug ON jobs(slug);
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at DESC);
-
--- Job configs index
+CREATE INDEX IF NOT EXISTS idx_jobs_company ON jobs(company);
+CREATE INDEX IF NOT EXISTS idx_applications_job_id ON applications(job_id);
+CREATE INDEX IF NOT EXISTS idx_applications_email ON applications(email);
+CREATE INDEX IF NOT EXISTS idx_applications_created_at ON applications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_job_configs_job_id ON job_configs(job_id);
 
--- Candidates indexes
-CREATE INDEX IF NOT EXISTS idx_candidates_job_id ON candidates(job_id);
-CREATE INDEX IF NOT EXISTS idx_candidates_status ON candidates(status);
-CREATE INDEX IF NOT EXISTS idx_candidates_created_at ON candidates(created_at DESC);
+-- =============================================
+-- ROW LEVEL SECURITY (RLS)
+-- =============================================
+ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_configs ENABLE ROW LEVEL SECURITY;
 
--- Candidate attributes indexes
-CREATE INDEX IF NOT EXISTS idx_candidate_attributes_candidate_id ON candidate_attributes(candidate_id);
-CREATE INDEX IF NOT EXISTS idx_candidate_attributes_key ON candidate_attributes(key);
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Enable read access for all users" ON jobs;
+DROP POLICY IF EXISTS "Enable insert for all users" ON jobs;
+DROP POLICY IF EXISTS "Enable update for all users" ON jobs;
+DROP POLICY IF EXISTS "Enable delete for all users" ON jobs;
+DROP POLICY IF EXISTS "Enable read access for all applications" ON applications;
+DROP POLICY IF EXISTS "Enable insert for all applications" ON applications;
+DROP POLICY IF EXISTS "Enable read access for all job_configs" ON job_configs;
+DROP POLICY IF EXISTS "Enable insert for all job_configs" ON job_configs;
 
--- ============================================
--- 4. CREATE UPDATED_AT TRIGGER FUNCTION
--- ============================================
+-- Jobs policies (public access for demo - adjust for production!)
+CREATE POLICY "Enable read access for all users" 
+  ON jobs FOR SELECT 
+  USING (true);
 
+CREATE POLICY "Enable insert for all users" 
+  ON jobs FOR INSERT 
+  WITH CHECK (true);
+
+CREATE POLICY "Enable update for all users" 
+  ON jobs FOR UPDATE 
+  USING (true);
+
+CREATE POLICY "Enable delete for all users" 
+  ON jobs FOR DELETE 
+  USING (true);
+
+-- Applications policies (public access for demo - adjust for production!)
+CREATE POLICY "Enable read access for all applications" 
+  ON applications FOR SELECT 
+  USING (true);
+
+CREATE POLICY "Enable insert for all applications" 
+  ON applications FOR INSERT 
+  WITH CHECK (true);
+
+-- Job configs policies (public access for demo - adjust for production!)
+CREATE POLICY "Enable read access for all job_configs" 
+  ON job_configs FOR SELECT 
+  USING (true);
+
+CREATE POLICY "Enable insert for all job_configs" 
+  ON job_configs FOR INSERT 
+  WITH CHECK (true);
+
+-- =============================================
+-- FUNCTIONS & TRIGGERS
+-- =============================================
+
+-- Function to auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
+   NEW.updated_at = NOW();
+   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE 'plpgsql';
 
--- Apply triggers to tables with updated_at
+-- Trigger for jobs table
 DROP TRIGGER IF EXISTS update_jobs_updated_at ON jobs;
-CREATE TRIGGER update_jobs_updated_at
-    BEFORE UPDATE ON jobs
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_jobs_updated_at 
+  BEFORE UPDATE ON jobs
+  FOR EACH ROW 
+  EXECUTE FUNCTION update_updated_at_column();
 
+-- Trigger for job_configs table
 DROP TRIGGER IF EXISTS update_job_configs_updated_at ON job_configs;
-CREATE TRIGGER update_job_configs_updated_at
-    BEFORE UPDATE ON job_configs
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_job_configs_updated_at 
+  BEFORE UPDATE ON job_configs
+  FOR EACH ROW 
+  EXECUTE FUNCTION update_updated_at_column();
 
-DROP TRIGGER IF EXISTS update_candidates_updated_at ON candidates;
-CREATE TRIGGER update_candidates_updated_at
-    BEFORE UPDATE ON candidates
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- =============================================
+-- SAMPLE DATA (Optional)
+-- =============================================
 
--- ============================================
--- 5. ROW LEVEL SECURITY (RLS) POLICIES
--- ============================================
+-- Insert sample jobs
+INSERT INTO jobs (slug, title, description, department, salary_min, salary_max, currency, salary_display, status, company, location)
+VALUES 
+  (
+    'senior-full-stack-developer',
+    'Senior Full Stack Developer',
+    'We are looking for an experienced Full Stack Developer to join our engineering team. You will be responsible for building scalable web applications using modern technologies like React, Node.js, and PostgreSQL. The ideal candidate has 5+ years of experience and a passion for clean code and best practices.',
+    'Engineering',
+    100000,
+    150000,
+    'USD',
+    'USD $100,000 - $150,000',
+    'active',
+    'Tech Innovators Inc.',
+    'San Francisco, CA'
+  ),
+  (
+    'product-designer',
+    'Product Designer',
+    'Join our design team to create beautiful and intuitive user experiences. You will work closely with product managers and engineers to design features that delight our users. Strong portfolio and 3+ years of experience required.',
+    'Design',
+    80000,
+    120000,
+    'USD',
+    'USD $80,000 - $120,000',
+    'active',
+    'Creative Solutions Ltd.',
+    'Remote'
+  ),
+  (
+    'marketing-manager',
+    'Marketing Manager',
+    'Lead our marketing efforts to drive growth and brand awareness. You will develop and execute marketing strategies across multiple channels including digital, content, and events. 5+ years of marketing experience required.',
+    'Marketing',
+    90000,
+    130000,
+    'USD',
+    'USD $90,000 - $130,000',
+    'active',
+    'Growth Partners Co.',
+    'New York, NY'
+  ),
+  (
+    'data-scientist',
+    'Data Scientist',
+    'Analyze large datasets to extract insights and build predictive models. Work with our data engineering team to create data pipelines and visualization dashboards. PhD or Master''s degree in related field preferred.',
+    'Data Science',
+    110000,
+    160000,
+    'USD',
+    'USD $110,000 - $160,000',
+    'draft',
+    'Data Insights Corp.',
+    'Boston, MA'
+  )
+ON CONFLICT (slug) DO NOTHING;
 
--- Enable RLS on all tables
-ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE job_configs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE candidates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE candidate_attributes ENABLE ROW LEVEL SECURITY;
-
--- ============================================
--- Jobs Table Policies
--- ============================================
-
--- Allow everyone to read active jobs
-DROP POLICY IF EXISTS "Allow public read access to active jobs" ON jobs;
-CREATE POLICY "Allow public read access to active jobs"
-ON jobs FOR SELECT
-USING (status = 'active' OR auth.role() = 'authenticated');
-
--- Allow everyone to read all jobs (for admin dashboard)
-DROP POLICY IF EXISTS "Allow read access to all jobs" ON jobs;
-CREATE POLICY "Allow read access to all jobs"
-ON jobs FOR SELECT
-USING (true);
-
--- Allow everyone to insert jobs (for demo purposes)
--- In production, you should restrict this to authenticated admin users
-DROP POLICY IF EXISTS "Allow insert jobs" ON jobs;
-CREATE POLICY "Allow insert jobs"
-ON jobs FOR INSERT
-WITH CHECK (true);
-
--- Allow everyone to update jobs (for demo purposes)
-DROP POLICY IF EXISTS "Allow update jobs" ON jobs;
-CREATE POLICY "Allow update jobs"
-ON jobs FOR UPDATE
-USING (true);
-
--- Allow everyone to delete jobs (for demo purposes)
-DROP POLICY IF EXISTS "Allow delete jobs" ON jobs;
-CREATE POLICY "Allow delete jobs"
-ON jobs FOR DELETE
-USING (true);
-
--- ============================================
--- Job Configs Table Policies
--- ============================================
-
-DROP POLICY IF EXISTS "Allow read access to job configs" ON job_configs;
-CREATE POLICY "Allow read access to job configs"
-ON job_configs FOR SELECT
-USING (true);
-
-DROP POLICY IF EXISTS "Allow insert job configs" ON job_configs;
-CREATE POLICY "Allow insert job configs"
-ON job_configs FOR INSERT
-WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow update job configs" ON job_configs;
-CREATE POLICY "Allow update job configs"
-ON job_configs FOR UPDATE
-USING (true);
-
-DROP POLICY IF EXISTS "Allow delete job configs" ON job_configs;
-CREATE POLICY "Allow delete job configs"
-ON job_configs FOR DELETE
-USING (true);
-
--- ============================================
--- Candidates Table Policies
--- ============================================
-
-DROP POLICY IF EXISTS "Allow read access to candidates" ON candidates;
-CREATE POLICY "Allow read access to candidates"
-ON candidates FOR SELECT
-USING (true);
-
-DROP POLICY IF EXISTS "Allow insert candidates" ON candidates;
-CREATE POLICY "Allow insert candidates"
-ON candidates FOR INSERT
-WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow update candidates" ON candidates;
-CREATE POLICY "Allow update candidates"
-ON candidates FOR UPDATE
-USING (true);
-
-DROP POLICY IF EXISTS "Allow delete candidates" ON candidates;
-CREATE POLICY "Allow delete candidates"
-ON candidates FOR DELETE
-USING (true);
-
--- ============================================
--- Candidate Attributes Table Policies
--- ============================================
-
-DROP POLICY IF EXISTS "Allow read access to candidate attributes" ON candidate_attributes;
-CREATE POLICY "Allow read access to candidate attributes"
-ON candidate_attributes FOR SELECT
-USING (true);
-
-DROP POLICY IF EXISTS "Allow insert candidate attributes" ON candidate_attributes;
-CREATE POLICY "Allow insert candidate attributes"
-ON candidate_attributes FOR INSERT
-WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow update candidate attributes" ON candidate_attributes;
-CREATE POLICY "Allow update candidate attributes"
-ON candidate_attributes FOR UPDATE
-USING (true);
-
-DROP POLICY IF EXISTS "Allow delete candidate attributes" ON candidate_attributes;
-CREATE POLICY "Allow delete candidate attributes"
-ON candidate_attributes FOR DELETE
-USING (true);
-
--- ============================================
--- 6. SAMPLE DATA (Optional - for testing)
--- ============================================
-
--- Insert a sample job
-INSERT INTO jobs (slug, title, description, department, status, salary_min, salary_max, currency, salary_display)
-VALUES (
-  'frontend-developer',
-  'Frontend Developer',
-  'We are looking for an experienced Frontend Developer to join our team. You will be responsible for building responsive and user-friendly web applications.',
-  'Engineering',
-  'active',
-  50000,
-  80000,
-  'USD',
-  'USD 50,000 - 80,000'
-) ON CONFLICT (slug) DO NOTHING;
-
--- Get the job_id for the sample job
-DO $$
-DECLARE
-  v_job_id UUID;
-BEGIN
-  SELECT id INTO v_job_id FROM jobs WHERE slug = 'frontend-developer';
-  
-  -- Insert sample job config
-  INSERT INTO job_configs (job_id, config)
-  VALUES (
-    v_job_id,
-    '{
-      "application_form": {
-        "sections": [
-          {
-            "title": "Personal Information",
-            "fields": [
-              {"key": "full_name", "validation": {"required": true}},
-              {"key": "email", "validation": {"required": true}},
-              {"key": "phone_number", "validation": {"required": true}},
-              {"key": "date_of_birth", "validation": {"required": false}},
-              {"key": "gender", "validation": {"required": false}},
-              {"key": "domicile", "validation": {"required": false}}
-            ]
-          },
-          {
-            "title": "Professional Information",
-            "fields": [
-              {"key": "linkedin_link", "validation": {"required": false}},
-              {"key": "portfolio_link", "validation": {"required": false}},
-              {"key": "resume_link", "validation": {"required": false}}
-            ]
-          },
-          {
-            "title": "Additional Information",
-            "fields": [
-              {"key": "expected_salary", "validation": {"required": false}},
-              {"key": "available_start_date", "validation": {"required": false}},
-              {"key": "cover_letter", "validation": {"required": false}}
-            ]
-          }
-        ]
-      }
-    }'::jsonb
-  ) ON CONFLICT (job_id) DO NOTHING;
-END $$;
-
--- ============================================
--- 7. VERIFY SETUP
--- ============================================
+-- =============================================
+-- VERIFICATION QUERIES
+-- =============================================
 
 -- Check tables exist
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
-  AND table_name IN ('jobs', 'job_configs', 'candidates', 'candidate_attributes')
-ORDER BY table_name;
+-- SELECT tablename FROM pg_tables WHERE schemaname = 'public';
 
--- Check RLS is enabled
-SELECT tablename, rowsecurity 
-FROM pg_tables 
-WHERE schemaname = 'public' 
-  AND tablename IN ('jobs', 'job_configs', 'candidates', 'candidate_attributes');
+-- Check jobs
+-- SELECT id, title, status, created_at FROM jobs;
 
--- Check policies exist
-SELECT tablename, policyname, cmd 
-FROM pg_policies 
-WHERE schemaname = 'public'
-ORDER BY tablename, policyname;
+-- Check applications count per job
+-- SELECT j.title, COUNT(a.id) as application_count
+-- FROM jobs j
+-- LEFT JOIN applications a ON j.id = a.job_id
+-- GROUP BY j.id, j.title;
 
--- Count records
-SELECT 
-  'jobs' as table_name, COUNT(*) as record_count FROM jobs
-UNION ALL
-SELECT 'job_configs', COUNT(*) FROM job_configs
-UNION ALL
-SELECT 'candidates', COUNT(*) FROM candidates
-UNION ALL
-SELECT 'candidate_attributes', COUNT(*) FROM candidate_attributes;
+-- =============================================
+-- PRODUCTION SECURITY NOTES
+-- =============================================
+-- 
+-- ⚠️ IMPORTANT: The policies above allow PUBLIC access for demo purposes.
+-- For production, you should:
+-- 
+-- 1. Implement Supabase Authentication
+-- 2. Add user roles (admin, applicant)
+-- 3. Update RLS policies to check user roles:
+--    - Admins can CRUD jobs
+--    - Applicants can only read active jobs
+--    - Applicants can only insert their own applications
+-- 
+-- Example production policy:
+-- CREATE POLICY "Applicants can read active jobs"
+--   ON jobs FOR SELECT
+--   USING (status = 'active' OR auth.uid() IN (
+--     SELECT id FROM user_roles WHERE role = 'admin'
+--   ));
+-- 
+-- =============================================
 
--- ============================================
--- NOTES:
--- ============================================
--- 1. The RLS policies above are permissive (allow all operations)
---    This is suitable for development/demo purposes.
---    In production, you should implement proper authentication
---    and restrict operations based on user roles.
---
--- 2. The candidate_attributes table uses a UNIQUE constraint
---    on (candidate_id, key) to prevent duplicate attributes.
---
--- 3. All foreign keys have ON DELETE CASCADE to automatically
---    clean up related records when a parent is deleted.
---
--- 4. Indexes are created to improve query performance on
---    commonly filtered/sorted columns.
---
--- 5. The updated_at triggers automatically update timestamps
---    whenever a record is modified.
---
--- ============================================
+-- Schema creation complete! 
+-- You can now run: npm run dev
