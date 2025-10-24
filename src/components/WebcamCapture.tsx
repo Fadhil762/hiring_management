@@ -13,8 +13,10 @@ export default function WebcamCapture({ onCapture, onClose }: WebcamCaptureProps
   const [capturing, setCapturing] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [detectedGesture, setDetectedGesture] = useState<string>('');
+  const [fingerCount, setFingerCount] = useState<number>(0);
   const [showInstructions, setShowInstructions] = useState(true);
   const gestureTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fingerSequenceRef = useRef<number[]>([]);
 
   // Capture photo
   const capturePhoto = useCallback(() => {
@@ -46,56 +48,140 @@ export default function WebcamCapture({ onCapture, onClose }: WebcamCaptureProps
     }, 1000);
   }, [capturing, capturePhoto]);
 
-  // Gesture detection using basic hand tracking
+  // Gesture detection using finger counting
   const detectGesture = useCallback(() => {
     const imageSrc = webcamRef.current?.getScreenshot();
-    if (!imageSrc) return;
+    if (!imageSrc || capturing) return;
 
-    // Simple gesture detection: look for hand-like shapes in the image
-    // In a real app, you'd use TensorFlow.js or MediaPipe for proper hand tracking
-    // For now, we'll trigger on any sudden movement or use a timer
-    
-    // Simulate gesture detection (in production, use proper ML model)
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new window.Image();
     
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
+      canvas.width = 320;
+      canvas.height = 240;
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
       
-      // Simple motion detection by analyzing image brightness changes
-      // This is a placeholder - in production use proper gesture recognition
       const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height);
-      if (imageData) {
-        let brightPixels = 0;
-        for (let i = 0; i < imageData.data.length; i += 4) {
-          const brightness = (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
-          if (brightness > 200) brightPixels++;
+      if (!imageData) return;
+
+      // Analyze upper portion for hand detection
+      const upperHalfEnd = Math.floor(canvas.height * 0.7);
+      
+      // Detect skin-colored regions (fingers)
+      const skinRegions: Array<{x: number, y: number}> = [];
+      
+      for (let y = 0; y < upperHalfEnd; y += 4) { // Skip pixels for speed
+        for (let x = 0; x < canvas.width; x += 4) {
+          const i = (y * canvas.width + x) * 4;
+          const r = imageData.data[i];
+          const g = imageData.data[i + 1];
+          const b = imageData.data[i + 2];
+          
+          // Skin tone detection
+          const isSkinTone = r > 95 && g > 40 && b > 20 && 
+                            r > g && r > b && 
+                            Math.abs(r - g) > 15;
+          
+          if (isSkinTone) {
+            skinRegions.push({x, y});
+          }
+        }
+      }
+      
+      if (skinRegions.length === 0) {
+        setFingerCount(0);
+        setDetectedGesture('');
+        return;
+      }
+
+      // Analyze vertical columns to count finger-like peaks
+      const columnWidth = 10;
+      const columns: number[] = [];
+      
+      for (let x = 0; x < canvas.width; x += columnWidth) {
+        let columnCount = 0;
+        for (const region of skinRegions) {
+          if (region.x >= x && region.x < x + columnWidth && region.y < upperHalfEnd / 2) {
+            columnCount++;
+          }
+        }
+        columns.push(columnCount);
+      }
+      
+      // Count peaks (fingers)
+      let peakCount = 0;
+      const threshold = 5;
+      let inPeak = false;
+      
+      for (let i = 1; i < columns.length - 1; i++) {
+        if (columns[i] > threshold) {
+          if (!inPeak && columns[i] > columns[i-1]) {
+            peakCount++;
+            inPeak = true;
+          }
+        } else {
+          inPeak = false;
+        }
+      }
+      
+      // Limit to reasonable finger count
+      const detectedFingers = Math.min(peakCount, 5);
+      setFingerCount(detectedFingers);
+      
+      // Track sequence: 1, 2, 3
+      if (detectedFingers > 0 && detectedFingers <= 3) {
+        const sequence = fingerSequenceRef.current;
+        
+        // Add to sequence if it's a new count
+        if (sequence.length === 0 || sequence[sequence.length - 1] !== detectedFingers) {
+          sequence.push(detectedFingers);
+          
+          // Keep only last 5 detections
+          if (sequence.length > 5) {
+            sequence.shift();
+          }
         }
         
-        // If significant bright area detected (like a hand), trigger capture
-        const brightRatio = brightPixels / (canvas.width * canvas.height);
-        if (brightRatio > 0.15 && brightRatio < 0.4) {
-          setDetectedGesture('✋ Hand detected!');
-          startCountdown();
+        // Check for 1-2-3 sequence
+        if (sequence.length >= 3) {
+          const last3 = sequence.slice(-3);
+          if (last3[0] === 1 && last3[1] === 2 && last3[2] === 3) {
+            setDetectedGesture('🎯 1-2-3 Detected!');
+            fingerSequenceRef.current = [];
+            
+            // Clear interval
+            if (gestureTimeoutRef.current) {
+              clearInterval(gestureTimeoutRef.current);
+              gestureTimeoutRef.current = null;
+            }
+            
+            startCountdown();
+            return;
+          }
         }
+        
+        // Update gesture message
+        setDetectedGesture(`${detectedFingers} finger${detectedFingers > 1 ? 's' : ''} 🤚`);
+      } else if (detectedFingers > 3) {
+        setDetectedGesture('');
+        fingerSequenceRef.current = [];
       }
     };
     
     img.src = imageSrc;
-  }, [startCountdown]);
+  }, [startCountdown, capturing]);
 
   // Manual capture
   const handleManualCapture = () => {
     startCountdown();
   };
 
-  // Gesture detection interval
+  // Gesture detection interval - check more frequently
   useEffect(() => {
     if (!capturing && !countdown) {
-      gestureTimeoutRef.current = setInterval(detectGesture, 1000);
+      // Check every 500ms for more responsive detection
+      gestureTimeoutRef.current = setInterval(detectGesture, 500);
     }
     
     return () => {
@@ -105,6 +191,16 @@ export default function WebcamCapture({ onCapture, onClose }: WebcamCaptureProps
     };
   }, [capturing, countdown, detectGesture]);
 
+  // Clear gesture message after a short time if countdown doesn't start
+  useEffect(() => {
+    if (detectedGesture && !countdown && !capturing) {
+      const timeout = setTimeout(() => {
+        setDetectedGesture('');
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [detectedGesture, countdown, capturing]);
+
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden">
@@ -113,7 +209,7 @@ export default function WebcamCapture({ onCapture, onClose }: WebcamCaptureProps
           <div>
             <h2 className="text-xl font-bold text-white">Take Your Photo</h2>
             <p className="text-teal-50 text-sm mt-1">
-              {showInstructions ? 'Show your hand to start countdown' : 'Smile! 😊'}
+              {showInstructions ? 'Show 1, 2, 3 fingers to start countdown' : 'Smile! 😊'}
             </p>
           </div>
           <button 
@@ -160,19 +256,65 @@ export default function WebcamCapture({ onCapture, onClose }: WebcamCaptureProps
               
               {/* Gesture Status */}
               {detectedGesture && !countdown && (
-                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full font-semibold text-lg shadow-lg animate-bounce">
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-8 py-4 rounded-full font-bold text-xl shadow-2xl animate-bounce">
                   {detectedGesture}
+                </div>
+              )}
+              
+              {/* Finger Count Progress */}
+              {fingerCount > 0 && fingerCount <= 3 && !countdown && (
+                <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-teal-600/90 text-white px-6 py-3 rounded-xl backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${fingerCount >= 1 ? 'bg-green-400 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                      1
+                    </div>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${fingerCount >= 2 ? 'bg-green-400 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                      2
+                    </div>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${fingerCount >= 3 ? 'bg-green-400 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                      3
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Active Detection Indicator */}
+              {!capturing && !countdown && (
+                <div className="absolute top-4 right-4 flex items-center gap-2 bg-teal-500/80 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium">Detecting...</span>
                 </div>
               )}
               
               {/* Instructions */}
               {showInstructions && !capturing && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-6 py-3 rounded-xl max-w-md text-center">
-                  <p className="font-semibold mb-2">📸 Auto-Capture Instructions:</p>
-                  <p className="text-sm">
-                    Position your face in the circle and raise your hand ✋ to trigger countdown.
-                    The photo will be taken automatically after 3 seconds.
-                  </p>
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-6 py-4 rounded-xl max-w-lg text-center backdrop-blur-sm">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <p className="font-bold text-lg">📸 Finger Counting Mode</p>
+                  </div>
+                  <div className="text-sm space-y-2">
+                    <p className="text-yellow-100">
+                      <strong>1.</strong> Position your face in the circle
+                    </p>
+                    <p className="text-yellow-100">
+                      <strong>2.</strong> Raise your hand and count: 1️⃣ → 2️⃣ → 3️⃣
+                    </p>
+                    <p className="text-yellow-100">
+                      <strong>3.</strong> Show each number clearly for 1 second
+                    </p>
+                    <p className="text-teal-200 text-xs mt-2 italic">
+                      Or click &ldquo;Capture Now&rdquo; button below for manual capture
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

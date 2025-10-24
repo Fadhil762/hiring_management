@@ -223,7 +223,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
               {...register('full_name', { required: 'This field is required' })}
               type="text"
               placeholder="Enter your full name"
-              className={`w-full px-3 py-2 border ${errors.full_name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500`}
+              className={`w-full px-3 py-2 border ${errors.full_name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 placeholder:text-gray-400`}
             />
           </div>
 
@@ -259,7 +259,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
             </label>
             <select
               {...register('domicile', { required: 'This field is required' })}
-              className={`w-full px-3 py-2 border ${errors.domicile ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white`}
+              className={`w-full px-3 py-2 border ${errors.domicile ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-gray-900`}
             >
               <option value="">Choose your domicile</option>
               <option value="Jakarta">Jakarta</option>
@@ -277,7 +277,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
               Phone number*
             </label>
             <div className="flex gap-2">
-              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white w-24">
+              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white w-24 text-gray-900">
                 <option value="+62">🇮🇩 +62</option>
                 <option value="+1">🇺🇸 +1</option>
                 <option value="+44">🇬🇧 +44</option>
@@ -286,7 +286,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
                 {...register('phone_number', { required: 'This field is required' })}
                 type="tel"
                 placeholder="81XXXXXXXXX"
-                className={`flex-1 px-3 py-2 border ${errors.phone_number ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500`}
+                className={`flex-1 px-3 py-2 border ${errors.phone_number ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 placeholder:text-gray-400`}
               />
             </div>
           </div>
@@ -305,7 +305,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
               })}
               type="email"
               placeholder="Enter your email address"
-              className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500`}
+              className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 placeholder:text-gray-400`}
             />
             {errors.email && (
               <p className="text-xs text-red-600 mt-1">{String(errors.email.message)}</p>
@@ -320,7 +320,7 @@ export default function ApplyPage({ params }: { params: Promise<{ slug: string }
               {...register('linkedin_link', { required: 'This field is required' })}
               type="url"
               placeholder="https://linkedin.com/in/username"
-              className={`w-full px-3 py-2 border ${errors.linkedin_link ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500`}
+              className={`w-full px-3 py-2 border ${errors.linkedin_link ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 placeholder:text-gray-400`}
             />
             {errors.linkedin_link && (
               <p className="text-xs text-gray-500 mt-1">Please copy paste your Linkedin URL, example: https://www.linkedin.com/in/username</p>
