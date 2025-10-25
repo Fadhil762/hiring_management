@@ -176,34 +176,29 @@ The following features can be added to extend functionality:
 
 ### Current Constraints
 
-1. **Authentication Not Implemented**: 
-   - Admin routes (`/admin/*`) are currently unprotected
-   - No user login or session management
-   - All users have full access to administrative functions
-   - Mitigation: Implement Supabase Auth before production deployment
 
-2. **Gesture Detection Environment Sensitivity**:
+1. **Gesture Detection Environment Sensitivity**:
    - Performance varies with lighting conditions (requires moderate to bright lighting)
    - Background complexity may affect detection accuracy
    - Skin-tone thresholds optimized for common ranges but may need adjustment
    - Works best with clear contrast between hand and background
 
-3. **Limited File Format Support**:
+2. **Limited File Format Support**:
    - Photo uploads accept common image formats only (JPEG, PNG, WebP)
    - No document upload for resumes or portfolios
    - Base64 encoding may impact performance with very large images
 
-4. **Browser Compatibility**:
+3. **Browser Compatibility**:
    - Webcam feature requires modern browsers with MediaDevices API support
    - Not tested extensively on Safari or mobile browsers
    - Requires HTTPS in production for camera access
 
-5. **Scalability Considerations**:
+4. **Scalability Considerations**:
    - No pagination implemented for job listings or applications
    - Large datasets may impact performance
    - No caching strategy for frequently accessed data
 
-6. **Missing Core Features**:
+5. **Missing Core Features**:
    - No email notification system
    - No candidate status workflow automation
    - No interview scheduling functionality

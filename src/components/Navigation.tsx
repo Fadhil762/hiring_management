@@ -1,11 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 
 export default function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const isAdmin = pathname?.startsWith('/admin');
+  const { isAuthenticated, logout, username } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
@@ -42,6 +50,19 @@ export default function Navigation() {
                 >
                   👤 View as Applicant
                 </Link>
+                {isAuthenticated && (
+                  <div className="flex items-center gap-3 ml-2 pl-4 border-l border-gray-200">
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium text-gray-900">{username}</span>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
+                    >
+                      🚪 Logout
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
               <>
