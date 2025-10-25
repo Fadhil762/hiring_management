@@ -24,15 +24,18 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
-    // Simulate network delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const success = login(username, password);
-    
-    if (success) {
-      router.push('/admin/jobs');
-    } else {
-      setError('Invalid username or password');
+    try {
+      const success = await login(username, password);
+      
+      if (success) {
+        router.push('/admin/jobs');
+      } else {
+        setError('Invalid username or password');
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An error occurred during login. Please try again.');
       setIsLoading(false);
     }
   };

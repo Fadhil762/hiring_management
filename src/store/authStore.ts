@@ -1,38 +1,59 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '@/lib/supabaseClient';
+import bcrypt from 'bcryptjs';
 
 interface AuthState {
   isAuthenticated: boolean;
   username: string | null;
-  login: (username: string, password: string) => boolean;
+  userId: string | null;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
-
-// Simple credential check (in production, use proper backend auth)
-const ADMIN_CREDENTIALS = {
-  username: 'admin',
-  password: 'rakaminenter2020',
-};
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       isAuthenticated: false,
       username: null,
+      userId: null,
       
-      login: (username: string, password: string) => {
-        if (
-          username === ADMIN_CREDENTIALS.username &&
-          password === ADMIN_CREDENTIALS.password
-        ) {
-          set({ isAuthenticated: true, username });
-          return true;
+      login: async (username: string, password: string) => {
+        try {
+          // Fetch user from database
+          const { data: user, error } = await supabase
+            .from('admin_users')
+            .select('*')
+            .eq('username', username)
+            .eq('is_active', true)
+            .single();
+
+          if (error || !user) {
+            console.error('User not found:', error);
+            return false;
+          }
+
+          // Verify password using bcrypt
+          const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+
+          if (isPasswordValid) {
+            set({ 
+              isAuthenticated: true, 
+              username: user.username,
+              userId: user.id 
+            });
+            return true;
+          }
+
+          return false;
+        } catch (error) {
+          console.error('Login error:', error);
+          return false;
         }
-        return false;
       },
       
       logout: () => {
-        set({ isAuthenticated: false, username: null });
+        set({ isAuthenticated: false, username: null, userId: null });
       },
     }),
     {
