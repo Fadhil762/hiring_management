@@ -246,13 +246,10 @@ hiring_management/
 └── tsconfig.json             # TypeScript configuration
 ```
 
-## Contributing
-
-This is a proprietary project for Rakamin. For internal development guidelines and contribution workflows, please refer to the team documentation.
 
 ## License
 
-Proprietary - All rights reserved by Rakamin
+Proprietary - All rights reserved by Fadhil Ahmad.
 
 ## Support
 
@@ -262,4 +259,4 @@ For technical issues or questions, please contact the development team or create
 
 **Version**: 0.1.0  
 **Last Updated**: October 2025  
-**Maintained By**: Rakamin Development Team
+**Maintained By**: Fadhil Ahmad
